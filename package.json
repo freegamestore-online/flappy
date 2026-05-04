@@ -1,0 +1,13 @@
+{
+  "name": "flappy",
+  "private": true,
+  "packageManager": "pnpm@10.30.3",
+  "engines": { "node": ">=22" },
+  "pnpm": { "onlyBuiltDependencies": ["esbuild"] },
+  "scripts": {
+    "dev": "pnpm --filter @flappy/web dev",
+    "build": "pnpm --filter @flappy/web build",
+    "preview": "pnpm --filter @flappy/web preview",
+    "typecheck": "pnpm --filter @flappy/web exec tsc -b"
+  }
+}
