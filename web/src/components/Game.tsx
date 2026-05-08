@@ -3,6 +3,7 @@ import { useRef, useEffect, useCallback } from "react";
 interface GameProps {
   onScore: (score: number) => void;
   onGameOver: () => void;
+  paused?: boolean;
 }
 
 // Physics
@@ -56,13 +57,15 @@ function createState(canvasH: number): State {
   };
 }
 
-export function Game({ onScore, onGameOver }: GameProps) {
+export function Game({ onScore, onGameOver, paused }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<State | null>(null);
   const onScoreRef = useRef(onScore);
   const onGameOverRef = useRef(onGameOver);
+  const pausedRef = useRef(paused);
   onScoreRef.current = onScore;
   onGameOverRef.current = onGameOver;
+  pausedRef.current = paused;
   const rafRef = useRef(0);
   const lastTimeRef = useRef(0);
 
@@ -112,6 +115,10 @@ export function Game({ onScore, onGameOver }: GameProps) {
 
     function loop(now: number) {
       rafRef.current = requestAnimationFrame(loop);
+      if (pausedRef.current) {
+        lastTimeRef.current = now;
+        return;
+      }
       const dt = Math.min(now - lastTimeRef.current, 33.33); // cap at ~30fps worth of delta
       lastTimeRef.current = now;
 
