@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback } from "react";
+import { useGameSounds } from "@freegamestore/games";
 
 interface GameProps {
   onScore: (score: number) => void;
@@ -63,9 +64,12 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
   const onScoreRef = useRef(onScore);
   const onGameOverRef = useRef(onGameOver);
   const pausedRef = useRef(paused);
+  const sounds = useGameSounds();
+  const soundsRef = useRef(sounds);
   onScoreRef.current = onScore;
   onGameOverRef.current = onGameOver;
   pausedRef.current = paused;
+  soundsRef.current = sounds;
   const rafRef = useRef(0);
   const lastTimeRef = useRef(0);
 
@@ -73,6 +77,7 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
     const s = stateRef.current;
     if (!s || !s.alive) return;
     s.bird.velocity = FLAP_VELOCITY;
+    soundsRef.current.playMove();
   }, []);
 
   useEffect(() => {
@@ -172,12 +177,14 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
             pipe.scored = true;
             s.score++;
             onScoreRef.current(s.score);
+            soundsRef.current.playScore();
           }
         }
 
         // Collision: ground or ceiling
         if (s.bird.y + BIRD_RADIUS > groundY || s.bird.y - BIRD_RADIUS < 0) {
           s.alive = false;
+          soundsRef.current.playGameOver();
           onGameOverRef.current();
         }
 
@@ -193,6 +200,7 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
               s.bird.y + BIRD_RADIUS > pipe.gapY + halfGap
             ) {
               s.alive = false;
+              soundsRef.current.playGameOver();
               onGameOverRef.current();
             }
           }
