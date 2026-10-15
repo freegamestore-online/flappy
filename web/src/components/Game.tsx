@@ -1,5 +1,4 @@
 import { useRef, useEffect, useCallback } from "react";
-import { useGameSounds } from "@freegamestore/games";
 
 interface GameProps {
   onScore: (score: number) => void;
@@ -64,12 +63,9 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
   const onScoreRef = useRef(onScore);
   const onGameOverRef = useRef(onGameOver);
   const pausedRef = useRef(paused);
-  const sounds = useGameSounds();
-  const soundsRef = useRef(sounds);
   onScoreRef.current = onScore;
   onGameOverRef.current = onGameOver;
   pausedRef.current = paused;
-  soundsRef.current = sounds;
   const rafRef = useRef(0);
   const lastTimeRef = useRef(0);
 
@@ -77,7 +73,6 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
     const s = stateRef.current;
     if (!s || !s.alive) return;
     s.bird.velocity = FLAP_VELOCITY;
-    soundsRef.current.playMove();
   }, []);
 
   useEffect(() => {
@@ -177,14 +172,12 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
             pipe.scored = true;
             s.score++;
             onScoreRef.current(s.score);
-            soundsRef.current.playScore();
           }
         }
 
         // Collision: ground or ceiling
         if (s.bird.y + BIRD_RADIUS > groundY || s.bird.y - BIRD_RADIUS < 0) {
           s.alive = false;
-          soundsRef.current.playGameOver();
           onGameOverRef.current();
         }
 
@@ -200,7 +193,6 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
               s.bird.y + BIRD_RADIUS > pipe.gapY + halfGap
             ) {
               s.alive = false;
-              soundsRef.current.playGameOver();
               onGameOverRef.current();
             }
           }
@@ -208,42 +200,42 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
       }
 
       // --- Draw ---
-      // Sky gradient
+      // Sky gradient (brand paper tones with a soft accent tint)
       const skyGrad = ctx!.createLinearGradient(0, 0, 0, h);
-      skyGrad.addColorStop(0, "#87CEEB");
-      skyGrad.addColorStop(0.7, "#E0F0FF");
-      skyGrad.addColorStop(1, "#B8E08C");
+      skyGrad.addColorStop(0, "#dbeafe");
+      skyGrad.addColorStop(0.75, "#f9fafb");
+      skyGrad.addColorStop(1, "#ffffff");
       ctx!.fillStyle = skyGrad;
       ctx!.fillRect(0, 0, w, h);
 
-      // Ground
-      ctx!.fillStyle = "#5B8C2A";
+      // Ground: ink slab with an accent edge
+      ctx!.fillStyle = "#1f2937";
       ctx!.fillRect(0, groundY, w, GROUND_HEIGHT);
-      ctx!.fillStyle = "#4A7A22";
+      ctx!.fillStyle = "#2563eb";
       ctx!.fillRect(0, groundY, w, 4);
 
-      // Pipes
+      // Obstacles: flat accent-blue pillars with a darker lip and a square end cap
       for (const pipe of s.pipes) {
         const halfGap = pipe.gapSize / 2;
+        const topEnd = pipe.gapY - halfGap;
+        const bottomStart = pipe.gapY + halfGap;
 
-        // Top pipe
-        ctx!.fillStyle = "#2D8B2D";
-        ctx!.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.gapY - halfGap);
-        // Top pipe cap
-        ctx!.fillStyle = "#35A035";
-        ctx!.fillRect(pipe.x - 3, pipe.gapY - halfGap - 20, PIPE_WIDTH + 6, 20);
+        // Top obstacle body and lip
+        ctx!.fillStyle = "#2563eb";
+        ctx!.fillRect(pipe.x, 0, PIPE_WIDTH, topEnd);
+        ctx!.fillStyle = "#1e40af";
+        ctx!.fillRect(pipe.x - 3, topEnd - 20, PIPE_WIDTH + 6, 20);
 
-        // Bottom pipe
-        ctx!.fillStyle = "#2D8B2D";
-        ctx!.fillRect(pipe.x, pipe.gapY + halfGap, PIPE_WIDTH, groundY - (pipe.gapY + halfGap));
-        // Bottom pipe cap
-        ctx!.fillStyle = "#35A035";
-        ctx!.fillRect(pipe.x - 3, pipe.gapY + halfGap, PIPE_WIDTH + 6, 20);
+        // Bottom obstacle body and lip
+        ctx!.fillStyle = "#2563eb";
+        ctx!.fillRect(pipe.x, bottomStart, PIPE_WIDTH, groundY - bottomStart);
+        ctx!.fillStyle = "#1e40af";
+        ctx!.fillRect(pipe.x - 3, bottomStart, PIPE_WIDTH + 6, 20);
 
-        // Pipe highlight (light stripe)
-        ctx!.fillStyle = "rgba(255,255,255,0.15)";
-        ctx!.fillRect(pipe.x + 4, 0, 8, pipe.gapY - halfGap);
-        ctx!.fillRect(pipe.x + 4, pipe.gapY + halfGap, 8, groundY - (pipe.gapY + halfGap));
+        // Inner highlight stripe
+        ctx!.fillStyle = "rgba(255,255,255,0.18)";
+        ctx!.fillRect(pipe.x + 6, 0, 6, topEnd - 20);
+        ctx!.fillRect(pipe.x + 6, bottomStart + 20, 6, groundY - bottomStart - 20);
       }
 
       // Bird
@@ -256,42 +248,47 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
       ctx!.translate(bx, by);
       ctx!.rotate(angle);
 
-      // Body (oval)
-      ctx!.fillStyle = "#FFD700";
+      // Tail fin (swept back, behind the body)
+      ctx!.fillStyle = "#b45309";
       ctx!.beginPath();
-      ctx!.ellipse(0, 0, BIRD_RADIUS, BIRD_RADIUS * 0.8, 0, 0, Math.PI * 2);
+      ctx!.moveTo(-BIRD_RADIUS + 3, -1);
+      ctx!.lineTo(-BIRD_RADIUS - 7, -9);
+      ctx!.lineTo(-BIRD_RADIUS - 3, 1);
+      ctx!.closePath();
       ctx!.fill();
 
-      // Belly highlight
-      ctx!.fillStyle = "#FFF3B0";
+      // Body (streamlined nose-forward oval)
+      ctx!.fillStyle = "#d97706";
       ctx!.beginPath();
-      ctx!.ellipse(2, 3, BIRD_RADIUS * 0.55, BIRD_RADIUS * 0.45, 0, 0, Math.PI * 2);
+      ctx!.ellipse(0, 0, BIRD_RADIUS, BIRD_RADIUS * 0.6, 0, 0, Math.PI * 2);
       ctx!.fill();
 
-      // Wing
-      ctx!.fillStyle = "#E6A800";
+      // Swept wing, flaps by a few pixels while alive
+      ctx!.fillStyle = "#b45309";
       ctx!.beginPath();
-      const wingFlap = s.alive ? Math.sin(s.time * 0.012) * 4 : 0;
-      ctx!.ellipse(-4, -2 + wingFlap, 8, 5, -0.3, 0, Math.PI * 2);
+      const wingFlap = s.alive ? Math.sin(s.time * 0.012) * 3 : 0;
+      ctx!.moveTo(4, 0);
+      ctx!.lineTo(-8, 8 + wingFlap);
+      ctx!.lineTo(-4, 0);
+      ctx!.closePath();
       ctx!.fill();
 
-      // Eye (white)
-      ctx!.fillStyle = "#FFFFFF";
+      // Cockpit canopy
+      ctx!.fillStyle = "#ffffff";
       ctx!.beginPath();
-      ctx!.arc(8, -5, 5, 0, Math.PI * 2);
+      ctx!.ellipse(5, -2, 4.5, 2.6, 0, 0, Math.PI * 2);
       ctx!.fill();
-      // Pupil
-      ctx!.fillStyle = "#000000";
+      ctx!.fillStyle = "#1a1a1a";
       ctx!.beginPath();
-      ctx!.arc(9.5, -5, 2.5, 0, Math.PI * 2);
+      ctx!.arc(6.5, -2, 1.6, 0, Math.PI * 2);
       ctx!.fill();
 
-      // Beak
-      ctx!.fillStyle = "#FF6B35";
+      // Nose stripe in brand accent
+      ctx!.fillStyle = "#2563eb";
       ctx!.beginPath();
-      ctx!.moveTo(BIRD_RADIUS - 2, -2);
-      ctx!.lineTo(BIRD_RADIUS + 8, 1);
-      ctx!.lineTo(BIRD_RADIUS - 2, 4);
+      ctx!.moveTo(BIRD_RADIUS - 1, -3);
+      ctx!.lineTo(BIRD_RADIUS + 4, 0);
+      ctx!.lineTo(BIRD_RADIUS - 1, 3);
       ctx!.closePath();
       ctx!.fill();
 

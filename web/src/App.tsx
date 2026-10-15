@@ -55,14 +55,14 @@ export default function App() {
     <GameShell
       topbar={
         <GameTopbar
-          title="Flappy"
+          title="Pipe Flyer"
           stats={[
             { label: "Score", value: score, accent: true },
             { label: "Best", value: bestScore },
           ]}
           rules={
             <div>
-              <h3 style={{marginBottom:'0.5rem',fontWeight:700}}>Flappy</h3>
+              <h3 style={{marginBottom:'0.5rem',fontWeight:700}}>Pipe Flyer</h3>
               <p>Fly through the gaps without hitting pipes.</p>
               <h4 style={{marginTop:'0.75rem',fontWeight:600}}>Controls</h4>
               <ul style={{paddingLeft:'1.2rem',marginTop:'0.25rem'}}>
