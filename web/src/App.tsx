@@ -32,7 +32,7 @@ export default function App() {
       localStorage.setItem(BEST_SCORE_KEY, String(final));
       setBestScore(final);
     }
-    submitScore(final);
+    if (final > 0) submitScore(final);
     setPhase("over");
   }, [submitScore]);
 
