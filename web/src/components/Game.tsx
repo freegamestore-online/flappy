@@ -71,7 +71,7 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
 
   const flap = useCallback(() => {
     const s = stateRef.current;
-    if (!s || !s.alive) return;
+    if (!s || !s.alive || pausedRef.current) return;
     s.bird.velocity = FLAP_VELOCITY;
   }, []);
 
@@ -176,13 +176,11 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
         }
 
         // Collision: ground or ceiling
-        if (s.bird.y + BIRD_RADIUS > groundY || s.bird.y - BIRD_RADIUS < 0) {
-          s.alive = false;
-          onGameOverRef.current();
-        }
+        let hit = s.bird.y + BIRD_RADIUS > groundY || s.bird.y - BIRD_RADIUS < 0;
 
         // Collision: pipes
         for (const pipe of s.pipes) {
+          if (hit) break;
           const pipeLeft = pipe.x;
           const pipeRight = pipe.x + PIPE_WIDTH;
           // Bird hitbox as circle
@@ -192,10 +190,14 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
               s.bird.y - BIRD_RADIUS < pipe.gapY - halfGap ||
               s.bird.y + BIRD_RADIUS > pipe.gapY + halfGap
             ) {
-              s.alive = false;
-              onGameOverRef.current();
+              hit = true;
             }
           }
+        }
+
+        if (hit) {
+          s.alive = false;
+          onGameOverRef.current();
         }
       }
 
