@@ -35,7 +35,7 @@ interface Pipe {
   scored: boolean;
 }
 
-interface State {
+export interface State {
   bird: Bird;
   pipes: Pipe[];
   score: number;
@@ -55,6 +55,27 @@ function createState(canvasH: number): State {
     pipeCount: 0,
     time: 0,
   };
+}
+
+/**
+ * Keep the bird and pipes in the same place relative to the playfield when
+ * the canvas resizes: x scales with width, y with the height above the ground.
+ */
+export function rescaleState(
+  s: State,
+  oldW: number,
+  oldGroundY: number,
+  newW: number,
+  newGroundY: number,
+) {
+  if (oldW <= 0 || oldGroundY <= 0) return;
+  const sx = newW / oldW;
+  const sy = newGroundY / oldGroundY;
+  s.bird.y *= sy;
+  for (const pipe of s.pipes) {
+    pipe.x *= sx;
+    pipe.gapY *= sy;
+  }
 }
 
 export function Game({ onScore, onGameOver, paused }: GameProps) {
@@ -81,16 +102,29 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Game logic works in CSS pixels; the backing store is scaled by the
+    // device pixel ratio so the canvas stays sharp on high-DPI screens.
+    let w = 0;
+    let h = 0;
     function resize() {
       const parent = canvas!.parentElement;
       if (!parent) return;
-      canvas!.width = parent.clientWidth;
-      canvas!.height = parent.clientHeight;
+      const newW = parent.clientWidth;
+      const newH = parent.clientHeight;
+      if (stateRef.current) {
+        rescaleState(stateRef.current, w, h - GROUND_HEIGHT, newW, newH - GROUND_HEIGHT);
+      }
+      w = newW;
+      h = newH;
+      const dpr = window.devicePixelRatio || 1;
+      canvas!.width = Math.round(w * dpr);
+      canvas!.height = Math.round(h * dpr);
+      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     resize();
     window.addEventListener("resize", resize);
 
-    stateRef.current = createState(canvas.height);
+    stateRef.current = createState(h);
 
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === " " || e.key === "ArrowUp") {
@@ -115,19 +149,14 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
 
     function loop(now: number) {
       rafRef.current = requestAnimationFrame(loop);
-      if (pausedRef.current) {
-        lastTimeRef.current = now;
-        return;
-      }
       const dt = Math.min(now - lastTimeRef.current, 33.33); // cap at ~30fps worth of delta
       lastTimeRef.current = now;
 
       const s = stateRef.current!;
-      const w = canvas!.width;
-      const h = canvas!.height;
       const groundY = h - GROUND_HEIGHT;
 
-      if (s.alive) {
+      // Still draw while paused: a resize clears the canvas.
+      if (s.alive && !pausedRef.current) {
         // dt is in ms, scale everything to ms
         const dtScale = dt / 16.667; // normalise to 60fps
 
